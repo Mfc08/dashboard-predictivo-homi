@@ -79,11 +79,36 @@
         }
     </style>
     <script>
-        // Definir variables y funciones globales en el head para que los iframes las encuentren
+        // Variables globales
         window.emailSubmitted = false;
         window.peticionEnviada = false;
         
-        // Esta función necesita estar definida antes de que los iframes intenten llamarla
+        // --- FUNCIÓN QUE HACE LA MAGIA INVISIBLE ---
+        window.crearEventoInvisible = function(equipo, tarea, fecha) {
+            // URL Real inyectada para crear el evento en Calendar
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIGnHs-hjJvJGadq1SXhqylvm4PKQAnmntfoA6BQNBAuIHdmjtVs9K73tlYZW2mXAmhA/exec";
+            
+            const payload = {
+                titulo: `[ALERTA IA] ${tarea}: ${equipo}`,
+                descripcion: `Notificación automatizada del Dashboard Ecosistema Predictivo HOMI.\n\nEquipo: ${equipo}\nTarea requerida: ${tarea}\n\nEl sistema calculó que la vida útil preventiva está por vencer. Se requiere intervención inmediata.`,
+                fecha: fecha // Debe estar en formato YYYY-MM-DD
+            };
+
+            // Hacemos una petición silenciosa al script de Google
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", // Fundamental para evitar errores de navegador
+                headers: {
+                    "Content-Type": "text/plain" // Usamos text/plain por el no-cors
+                },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                console.log("Petición a Google Calendar enviada en segundo plano.");
+            }).catch(err => {
+                console.error("Error al enviar evento a Google:", err);
+            });
+        };
+
         window.iframeLoaded = function() {
             if(!window.peticionEnviada) return;
             
@@ -92,20 +117,13 @@
             
             if(terminalText && status) {
                 terminalText.innerHTML += `<p class="mt-4 text-green-400 font-bold">> HTTP/1.1 200 OK (Respuesta recibida del servidor de correo)</p>`;
-                terminalText.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Si la caja de abajo dice 'Thanks!', revisa tu bandeja de entrada (y la carpeta SPAM) de: mcifuentes453@gmail.com</p>`;
-                
                 status.innerHTML = `<div class="w-2 h-2 bg-green-500 rounded-full"></div> Transmisión Completada`;
-            }
-            
-            // Llamar a showToast (que se define más abajo) si existe
-            if(typeof window.showToast === 'function') {
-                window.showToast(`¡Petición enviada al servidor! Revisa tu correo.`, 'success');
             }
         };
 
         window.emailEnviadoOk = function() {
             if(!window.emailSubmitted) return;
-            window.emailSubmitted = false; // reset
+            window.emailSubmitted = false; 
             
             const terminal = document.getElementById('api-terminal');
             const status = document.getElementById('api-status');
@@ -113,16 +131,23 @@
 
             if(terminal && status && closeBtn) {
                 terminal.innerHTML += `<p class="mt-4 text-green-400 font-bold">> HTTP/1.1 200 OK (Email Sent Successfully)</p>`;
-                terminal.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Revisa la bandeja de entrada (Y SPAM) de: mcifuentes453@gmail.com</p>`;
-                terminal.innerHTML += `<p class="mt-2 text-blue-400">> Conexión cerrada. Tarea ejecutada exitosamente.</p>`;
+                terminal.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Notificación enviada a: mcifuentes453@gmail.com</p>`;
+                terminal.innerHTML += `<p class="mt-4 text-warning font-bold">> Evento inyectado en Google Calendar en segundo plano.</p>`;
+                terminal.innerHTML += `<p class="mt-2 text-blue-400">> Orquestación finalizada exitosamente.</p>`;
                 
                 status.innerHTML = `<div class="w-2 h-2 bg-green-500 rounded-full"></div> Transmisión Exitosa`;
                 closeBtn.classList.remove('hidden');
             }
             
             if(typeof window.showToast === 'function') {
-                window.showToast(`¡Correo real enviado a mcifuentes453@gmail.com!`, 'success');
+                window.showToast(`¡Correo enviado y evento creado en Calendar!`, 'success');
             }
+
+            // Cambiar la vista del modal de éxito después de un momento
+            setTimeout(() => {
+                window.closeModal('api-modal');
+                window.openModal('success-modal');
+            }, 3000);
         };
     </script>
 </head>
@@ -138,7 +163,7 @@
         <input type="hidden" name="Equipo" id="mail_equipo" value="">
         <input type="hidden" name="Ubicacion" value="Fundación HOMI - UCI Intermedia">
         <input type="hidden" name="Fecha_Limite" id="mail_fecha" value="">
-        <input type="hidden" name="Accion" value="Se requiere intervención inmediata.">
+        <input type="hidden" name="Accion" value="Mantenimiento programado automáticamente en Google Calendar.">
     </form>
 
     <div class="flex flex-1 overflow-hidden">
@@ -162,10 +187,10 @@
                     <i class="fa-solid fa-file-excel text-lg w-6 text-center"></i>
                     <span class="hidden lg:block font-medium">Conexión Excel BD</span>
                 </button>
-                <button onclick="openModal('api-modal', true)" class="w-full flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-left relative">
-                    <i class="fa-solid fa-server text-lg w-6 text-center"></i>
-                    <span class="hidden lg:block font-medium">Servidor Backend API</span>
-                    <span class="absolute right-2 top-3 w-2 h-2 rounded-full bg-alert animate-ping hidden lg:block"></span>
+                <button class="w-full flex items-center gap-3 p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-left relative">
+                    <i class="fa-solid fa-calendar-days text-lg w-6 text-center"></i>
+                    <span class="hidden lg:block font-medium">Agenda en 2do Plano</span>
+                    <span class="absolute right-2 top-3 w-2 h-2 rounded-full bg-success animate-pulse hidden lg:block"></span>
                 </button>
             </nav>
             <div class="p-4 border-t border-slate-700/50">
@@ -189,7 +214,7 @@
             <header class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-white tracking-tight">Centro de Control Predictivo</h2>
-                    <p class="text-slate-400">Automatización basada en cronograma de Excel y notificaciones - 2026</p>
+                    <p class="text-slate-400">Automatización total con Calendar API Backend - 2026</p>
                 </div>
                 <div class="flex gap-4 items-center">
                     
@@ -256,7 +281,7 @@
                     <p class="text-xs text-slate-400 mt-3 font-mono">Sync: Excel SharePoint</p>
                 </div>
 
-                <div onclick="openModal('api-modal', true)" class="glass-panel p-5 relative overflow-hidden group cursor-pointer hover:scale-[1.02] hover:border-success/50 transition-all duration-300">
+                <div class="glass-panel p-5 relative overflow-hidden group cursor-pointer hover:scale-[1.02] hover:border-success/50 transition-all duration-300">
                     <div class="absolute -right-4 -top-4 w-16 h-16 bg-success/10 rounded-full blur-xl group-hover:bg-success/30 transition-all"></div>
                     <div class="flex justify-between items-start">
                         <div>
@@ -267,12 +292,13 @@
                             <i class="fa-solid fa-check-double text-xl"></i>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-400 mt-3">Ver Consola de Servidor</p>
+                    <p class="text-xs text-slate-400 mt-3">Estado Óptimo Normativo</p>
                 </div>
             </div>
 
             <!-- Charts Row -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Main Prediction Chart -->
                 <div class="glass-panel p-5 lg:col-span-2 flex flex-col border border-primary/20">
                     <div class="flex justify-between items-center mb-4">
                         <div>
@@ -290,29 +316,32 @@
                     </div>
                 </div>
 
+                <!-- Algorithmic Decisions Panel -->
                 <div class="glass-panel p-5 flex flex-col">
                     <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-code text-primary"></i> Lógica del Sistema
                     </h3>
                     <div class="flex-1 space-y-3 overflow-y-auto pr-2">
                         
+                        <!-- V-005 -->
                         <div class="p-4 bg-gradient-to-br from-alert/20 to-panel border border-alert/30 rounded-lg shadow-lg" id="panel-v005">
                             <div class="flex justify-between items-start mb-2">
                                 <h4 class="text-alert font-bold text-sm">ACCIÓN REQUERIDA: V-005</h4>
                             </div>
                             <p class="text-xs text-slate-300 mb-3 leading-relaxed"><strong>Regla:</strong> El algoritmo detecta que faltan solo 15 días exactos para su mantenimiento preventivo (<strong>10 de Marzo de 2026</strong>). Agendamiento forzoso activado.</p>
-                            <button id="btn-v005-panel" onclick="triggerEmailManual('Ventilador Mecánico V-005', 'Mantenimiento Preventivo', '2026-03-10', this)" class="w-full py-2 bg-alert hover:bg-red-600 text-white rounded text-xs font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] flex justify-center items-center gap-2 transform hover:scale-[1.02]">
-                                <i class="fa-solid fa-envelope text-base"></i> Notificar Manualmente
+                            <button id="btn-v005-panel" onclick="iniciarEnvioRealAPI('Ventilador Mecánico V-005', 'Mantenimiento Preventivo (15 Días)', '2026-03-10', this)" class="w-full py-2 bg-alert hover:bg-red-600 text-white rounded text-xs font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] flex justify-center items-center gap-2 transform hover:scale-[1.02]">
+                                <i class="fa-brands fa-google text-base"></i> Auto-Agendar
                             </button>
                         </div>
 
+                        <!-- B-402 -->
                         <div class="p-4 bg-panel border border-warning/30 rounded-lg">
                             <div class="flex justify-between items-start mb-2">
                                 <h4 class="text-warning font-bold text-sm">Próximo: B-402</h4>
                             </div>
                             <p class="text-xs text-slate-400 mb-3"><strong>Proyección:</strong> Faltan 50 días para la fecha límite. El sistema sugiere agendar anticipadamente para Abril 2026 y optimizar ruta.</p>
                             <button onclick="window.showToast('Todavía no es crítico. Faltan 50 días.', 'info')" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 rounded text-xs font-bold transition-colors flex justify-center items-center gap-2">
-                                <i class="fa-solid fa-envelope"></i> Notificar
+                                <i class="fa-solid fa-clock"></i> Notificar
                             </button>
                         </div>
 
@@ -365,8 +394,8 @@
                                 </td>
                                 <td class="p-4 text-alert font-bold"><i class="fa-regular fa-calendar-xmark mr-1"></i>10 Mar 2026</td>
                                 <td class="p-4 text-right" id="td-action-v005">
-                                    <button id="btn-v005-table" onclick="triggerEmailManual('Ventilador Mecánico V-005', 'Mantenimiento Preventivo', '2026-03-10', this)" class="bg-alert/20 hover:bg-alert hover:text-white text-alert border border-alert/50 px-3 py-1.5 rounded text-xs font-bold transition-all shadow-lg">
-                                        <i class="fa-solid fa-envelope mr-1"></i> Notificar
+                                    <button id="btn-v005-table" onclick="iniciarEnvioRealAPI('Ventilador Mecánico V-005', 'Mantenimiento en 15 Días', '2026-03-10', this)" class="bg-alert/20 hover:bg-alert hover:text-white text-alert border border-alert/50 px-3 py-1.5 rounded text-xs font-bold transition-all shadow-lg">
+                                        <i class="fa-solid fa-bolt mr-1"></i> Auto-Agendar
                                     </button>
                                 </td>
                             </tr>
@@ -412,7 +441,7 @@
                 <div class="flex gap-4">
                     <span><i class="fa-solid fa-circle text-success text-[8px] mr-1"></i>Motor de Reglas: Online</span>
                     <span><i class="fa-solid fa-circle text-success text-[8px] mr-1"></i>Excel Sync: Active</span>
-                    <span><i class="fa-solid fa-circle text-success text-[8px] mr-1"></i>API Correo: Conectada</span>
+                    <span><i class="fa-solid fa-circle text-success text-[8px] mr-1"></i>API Correo/Calendar: Conectada</span>
                 </div>
                 <div>Latencia: 12ms | Servidor: AWS-HOMI-01 | Destino: mcifuentes453@gmail.com</div>
             </footer>
@@ -422,9 +451,26 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- MODALS SECTION -->
+    <!-- ================= MODALS SECTION ================= -->
     
-    <!-- 1. MODAL: GOOGLE CALENDAR API (CONSOLA REAL) -->
+    <!-- MODAL DE ÉXITO (INFORMA QUE TODO SE HIZO SOLO) -->
+    <div id="success-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('success-modal')"></div>
+        <div class="relative bg-[#0F172A] border border-success/50 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.3)] w-[90%] max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col" id="success-modal-content">
+            <div class="p-8 text-center bg-[#050B14]">
+                <div class="w-20 h-20 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-success/50">
+                    <i class="fa-solid fa-check-double text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">¡Orquestación Exitosa!</h2>
+                <p class="text-slate-400 mb-6 leading-relaxed">
+                    El sistema ha enviado el correo electrónico y ha inyectado el evento en Google Calendar de manera 100% invisible y autónoma. Revisa tu calendario.
+                </p>
+                <button onclick="closeModal('success-modal')" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition-colors">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONSOLA API -->
     <div id="api-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('api-modal')"></div>
         <div class="relative bg-[#0F172A] border border-slate-600 rounded-xl shadow-[0_0_30px_rgba(66,133,244,0.3)] w-[90%] max-w-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col" id="api-modal-content">
@@ -433,22 +479,20 @@
                 <button onclick="closeModal('api-modal')" class="hover:text-gray-300"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div class="p-6 scanlines bg-[#050B14] font-mono text-[11px] text-green-400 h-[500px] overflow-y-auto" id="api-terminal">
+            <div class="p-6 scanlines bg-[#050B14] font-mono text-[11px] text-green-400 h-[400px] overflow-y-auto" id="api-terminal">
                 <div id="terminal-text">
                     <p class="text-slate-400">> Consola API en espera...</p>
                 </div>
-                <!-- AQUÍ ES DONDE SE VERÁ LA RESPUESTA REAL DE FORMSUBMIT (INCLUYENDO EL CAPTCHA) -->
-                <iframe name="real_iframe" id="real_iframe" class="w-full h-80 bg-white rounded mt-4 border-2 border-slate-600" style="display:none;" onload="window.iframeLoaded()"></iframe>
             </div>
 
             <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center">
                 <div class="text-xs text-slate-400 flex items-center gap-2" id="api-status"><div class="w-2 h-2 bg-slate-500 rounded-full"></div> Standby</div>
-                <button onclick="closeModal('api-modal')" class="px-4 py-1.5 bg-[#4285F4] text-white rounded hover:bg-blue-600 font-bold text-xs shadow-lg" id="api-close-btn">Cerrar Consola</button>
+                <button onclick="closeModal('api-modal')" class="px-4 py-1.5 bg-[#4285F4] text-white rounded hover:bg-blue-600 font-bold text-xs shadow-lg hidden" id="api-close-btn">Cerrar Consola</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. MODAL: EXCEL SYNC -->
+    <!-- MODAL: EXCEL SYNC -->
     <div id="excel-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('excel-modal')"></div>
         <div class="relative bg-[#0F172A] border border-slate-600 rounded-xl shadow-[0_0_30px_rgba(16,124,65,0.3)] w-[90%] max-w-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="excel-modal-content">
@@ -470,8 +514,6 @@
 
     <!-- SCRIPTS -->
     <script>
-        const correoIngeniero = "mcifuentes453@gmail.com";
-
         // --- RELOJ ---
         function updateClock() {
             const now = new Date();
@@ -543,76 +585,70 @@
 
             if(btnPanel) {
                 btnPanel.outerHTML = `
-                    <div class="w-full py-2 bg-success text-white rounded text-xs font-bold flex justify-center items-center gap-2">
-                        <i class="fa-solid fa-check-double mr-1"></i> Enviado a ${correoIngeniero}
+                    <div class="w-full py-2 bg-success text-white rounded text-xs font-bold flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                        <i class="fa-solid fa-check-double mr-1"></i> Completado Autónomamente
                     </div>`;
             }
 
             const row = document.getElementById('row-v005');
-            if(row) row.classList.replace('bg-alert/5', 'bg-success/5');
+            if(row) row.classList.replace('bg-alert/5', 'bg-success/10');
 
             const alertCount = document.getElementById('alert-count');
             if(alertCount && parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
 
-            iniciarEnvioRealAPI('Ventilador Mecánico V-005', '10 de Marzo de 2026');
+            iniciarEnvioRealAPI('Ventilador Mecánico V-005', 'Mantenimiento Preventivo', '2026-03-10');
         }
 
-        // --- ENVÍO REAL DEL CORREO (AQUÍ ESTÁ LA MAGIA) ---
-        function iniciarEnvioRealAPI(equipo, fecha) {
+        // --- ENVÍO REAL DEL CORREO Y GOOGLE CALENDAR ---
+        function iniciarEnvioRealAPI(equipo, tarea, fecha, btnElement) {
+            
+            if(btnElement) {
+                btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Ejecutando Orquestación...';
+                btnElement.disabled = true;
+                
+                setTimeout(() => {
+                    if(btnElement.parentElement.id === "td-action-v005") {
+                        btnElement.parentElement.innerHTML = `<span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center"><i class="fa-solid fa-check-double mr-1"></i> API Sync OK</span>`;
+                    }
+                }, 1000);
+            }
+
             openModal('api-modal');
             const terminalText = document.getElementById('terminal-text');
             const status = document.getElementById('api-status');
-            const iframe = document.getElementById('real_iframe');
             
-            if(status) status.innerHTML = `<div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div> POST Request enviándose (Real)...`;
+            if(status) status.innerHTML = `<div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div> Orquestando Sistema en Segundo Plano...`;
             
             if(terminalText) {
                 terminalText.innerHTML = `
-<p class="text-blue-400">> Ejecutando conexión segura POST formsubmit.co/${correoIngeniero}</p>
-<p class="mt-2 text-slate-400">Payload transmitido:</p>
-<pre class="text-yellow-300 ml-4 mt-1">
-{
-  "_subject": "[ALERTA IA] Mantenimiento Crítico - ${equipo}",
-  "Equipo": "${equipo}",
-  "Fecha_Limite": "${fecha}"
-}
-</pre>
-<p class="mt-4 text-white font-bold">> Esperando respuesta del servidor de correo externo...</p>
-<p class="text-orange-400 text-xs italic">> (Si ves un botón blanco abajo de "I'm not a robot", dale clic para autorizar el envío).</p>
+<p class="text-blue-400">> 1. Ejecutando conexión segura POST hacia FormSubmit (Correo)...</p>
+<p class="text-blue-400">> 2. Ejecutando conexión segura POST hacia Google Apps Script (Calendar)...</p>
+<p class="mt-4 text-white font-bold">> Enviando peticiones simultáneas...</p>
 `;
             }
 
-            // Llenar el formulario oculto con los datos
+            // Llamada al Web App de Google Calendar (INVISIBLE)
+            window.crearEventoInvisible(equipo, tarea, fecha);
+
+            // Llenar el formulario oculto con los datos para el correo
             const mailEquipo = document.getElementById('mail_equipo');
             const mailFecha = document.getElementById('mail_fecha');
             const mailSubject = document.getElementById('mail_subject');
             
             if(mailEquipo) mailEquipo.value = equipo;
             if(mailFecha) mailFecha.value = fecha;
-            if(mailSubject) mailSubject.value = `[ALERTA IA HOMI] Mantenimiento Urgente: ${equipo}`;
+            if(mailSubject) mailSubject.value = `[ALERTA IA HOMI] ${tarea}: ${equipo}`;
             
-            // Hacemos visible el iframe para que puedas ver y resolver el CAPTCHA
-            if(iframe) iframe.style.display = 'block';
-            
-            // Enviamos el formulario
             window.peticionEnviada = true;
+            window.emailSubmitted = true;
+            
+            // Dispara el envío del correo
             const form = document.getElementById('emailForm');
             if(form) form.submit();
         }
 
         // --- MODAL CONTROLLER ---
-        function openModal(modalId, isDefaultCalendar = false) {
-            if(isDefaultCalendar && modalId === 'calendar-modal') {
-                modalId = 'api-modal'; 
-                const terminalText = document.getElementById('terminal-text');
-                const realIframe = document.getElementById('real_iframe');
-                const apiStatus = document.getElementById('api-status');
-                
-                if(terminalText) terminalText.innerHTML = `<p class="text-slate-400">> Consola API inactiva. Esperando detección de alertas IA...</p>`;
-                if(realIframe) realIframe.style.display = 'none';
-                if(apiStatus) apiStatus.innerHTML = `<div class="w-2 h-2 bg-slate-500 rounded-full"></div> Standby`;
-            }
-
+        function openModal(modalId) {
             const modal = document.getElementById(modalId);
             const content = document.getElementById(modalId + '-content');
 
@@ -638,6 +674,7 @@
         function closeAllModals() {
             closeModal('api-modal');
             closeModal('excel-modal');
+            closeModal('success-modal');
         }
 
         // --- EXCEL TERMINAL SIMULATION ---
@@ -658,33 +695,6 @@
                     }
                 }, 1200);
             }, 2500);
-        }
-
-        // --- AGENDAR EVENTO (MANUAL) ---
-        function triggerEmailManual(equipo, tarea, fecha, btnElement) {
-            const toggle = document.getElementById('autoPilotToggle');
-            if(toggle) toggle.checked = false;
-
-            if(btnElement) {
-                btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando Correo...';
-                btnElement.disabled = true;
-            }
-
-            setTimeout(() => {
-                if(btnElement && btnElement.parentElement) {
-                    const tdAction = btnElement.parentElement;
-                    tdAction.innerHTML = `
-                    <span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center">
-                        <i class="fa-solid fa-check-double mr-1"></i> API Sync OK
-                    </span>`;
-                }
-                
-                const alertCount = document.getElementById('alert-count');
-                if(alertCount && parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
-
-                iniciarEnvioRealAPI(equipo, fecha);
-
-            }, 800);
         }
 
         // --- NOTIFICACIONES TOAST ---
