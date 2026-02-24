@@ -70,7 +70,6 @@
             pointer-events: none;
         }
         
-        /* Estilos para el Toggle Switch */
         .toggle-checkbox:checked {
             right: 0;
             border-color: #10B981;
@@ -80,14 +79,57 @@
         }
     </style>
     <script>
-        // Declaración global para evitar ReferenceError
-        var emailSubmitted = false;
+        // Definir variables y funciones globales en el head para que los iframes las encuentren
+        window.emailSubmitted = false;
+        window.peticionEnviada = false;
+        
+        // Esta función necesita estar definida antes de que los iframes intenten llamarla
+        window.iframeLoaded = function() {
+            if(!window.peticionEnviada) return;
+            
+            const terminalText = document.getElementById('terminal-text');
+            const status = document.getElementById('api-status');
+            
+            if(terminalText && status) {
+                terminalText.innerHTML += `<p class="mt-4 text-green-400 font-bold">> HTTP/1.1 200 OK (Respuesta recibida del servidor de correo)</p>`;
+                terminalText.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Si la caja de abajo dice 'Thanks!', revisa tu bandeja de entrada (y la carpeta SPAM) de: mcifuentes453@gmail.com</p>`;
+                
+                status.innerHTML = `<div class="w-2 h-2 bg-green-500 rounded-full"></div> Transmisión Completada`;
+            }
+            
+            // Llamar a showToast (que se define más abajo) si existe
+            if(typeof window.showToast === 'function') {
+                window.showToast(`¡Petición enviada al servidor! Revisa tu correo.`, 'success');
+            }
+        };
+
+        window.emailEnviadoOk = function() {
+            if(!window.emailSubmitted) return;
+            window.emailSubmitted = false; // reset
+            
+            const terminal = document.getElementById('api-terminal');
+            const status = document.getElementById('api-status');
+            const closeBtn = document.getElementById('api-close-btn');
+
+            if(terminal && status && closeBtn) {
+                terminal.innerHTML += `<p class="mt-4 text-green-400 font-bold">> HTTP/1.1 200 OK (Email Sent Successfully)</p>`;
+                terminal.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Revisa la bandeja de entrada (Y SPAM) de: mcifuentes453@gmail.com</p>`;
+                terminal.innerHTML += `<p class="mt-2 text-blue-400">> Conexión cerrada. Tarea ejecutada exitosamente.</p>`;
+                
+                status.innerHTML = `<div class="w-2 h-2 bg-green-500 rounded-full"></div> Transmisión Exitosa`;
+                closeBtn.classList.remove('hidden');
+            }
+            
+            if(typeof window.showToast === 'function') {
+                window.showToast(`¡Correo real enviado a mcifuentes453@gmail.com!`, 'success');
+            }
+        };
     </script>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-sm">
 
     <!-- FORMULARIO OCULTO PARA ENVÍO DE CORREO SIN CORS -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(window.emailSubmitted) { window.emailEnviadoOk(); }"></iframe>
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="window.emailEnviadoOk()"></iframe>
     <form id="emailForm" action="https://formsubmit.co/mcifuentes453@gmail.com" method="POST" target="hidden_iframe" style="display:none;">
         <input type="hidden" name="_subject" id="mail_subject" value="[ALERTA IA] Mantenimiento Predictivo HOMI">
         <input type="hidden" name="_captcha" value="false">
@@ -231,7 +273,6 @@
 
             <!-- Charts Row -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Main Prediction Chart -->
                 <div class="glass-panel p-5 lg:col-span-2 flex flex-col border border-primary/20">
                     <div class="flex justify-between items-center mb-4">
                         <div>
@@ -249,14 +290,12 @@
                     </div>
                 </div>
 
-                <!-- Algorithmic Decisions Panel -->
                 <div class="glass-panel p-5 flex flex-col">
                     <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-code text-primary"></i> Lógica del Sistema
                     </h3>
                     <div class="flex-1 space-y-3 overflow-y-auto pr-2">
                         
-                        <!-- V-005 -->
                         <div class="p-4 bg-gradient-to-br from-alert/20 to-panel border border-alert/30 rounded-lg shadow-lg" id="panel-v005">
                             <div class="flex justify-between items-start mb-2">
                                 <h4 class="text-alert font-bold text-sm">ACCIÓN REQUERIDA: V-005</h4>
@@ -267,13 +306,12 @@
                             </button>
                         </div>
 
-                        <!-- B-402 -->
                         <div class="p-4 bg-panel border border-warning/30 rounded-lg">
                             <div class="flex justify-between items-start mb-2">
                                 <h4 class="text-warning font-bold text-sm">Próximo: B-402</h4>
                             </div>
                             <p class="text-xs text-slate-400 mb-3"><strong>Proyección:</strong> Faltan 50 días para la fecha límite. El sistema sugiere agendar anticipadamente para Abril 2026 y optimizar ruta.</p>
-                            <button onclick="showToast('Todavía no es crítico. Faltan 50 días.', 'info')" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 rounded text-xs font-bold transition-colors flex justify-center items-center gap-2">
+                            <button onclick="window.showToast('Todavía no es crítico. Faltan 50 días.', 'info')" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white border border-slate-500 rounded text-xs font-bold transition-colors flex justify-center items-center gap-2">
                                 <i class="fa-solid fa-envelope"></i> Notificar
                             </button>
                         </div>
@@ -345,7 +383,7 @@
                                 </td>
                                 <td class="p-4 text-slate-300">15 Abr 2026</td>
                                 <td class="p-4 text-right">
-                                    <button onclick="showToast('Todavía no es crítico. Faltan 50 días.', 'info')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-all">
+                                    <button onclick="window.showToast('Todavía no es crítico. Faltan 50 días.', 'info')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-all">
                                         Notificar
                                     </button>
                                 </td>
@@ -386,20 +424,26 @@
 
     <!-- MODALS SECTION -->
     
-    <!-- 1. MODAL: GOOGLE CALENDAR API (SIMULACIÓN Y ENVÍO REAL) -->
+    <!-- 1. MODAL: GOOGLE CALENDAR API (CONSOLA REAL) -->
     <div id="api-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('api-modal')"></div>
-        <div class="relative bg-[#0F172A] border border-slate-600 rounded-xl shadow-[0_0_30px_rgba(66,133,244,0.3)] w-[90%] max-w-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="api-modal-content">
+        <div class="relative bg-[#0F172A] border border-slate-600 rounded-xl shadow-[0_0_30px_rgba(66,133,244,0.3)] w-[90%] max-w-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col" id="api-modal-content">
             <div class="bg-[#4285F4] text-white p-3 flex justify-between items-center font-mono text-sm">
                 <div class="flex items-center gap-2"><i class="fa-solid fa-server"></i><span>Servidor_Backend_API_REST.exe</span></div>
                 <button onclick="closeModal('api-modal')" class="hover:text-gray-300"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-6 scanlines bg-[#050B14] font-mono text-[11px] text-green-400 h-80 overflow-y-auto" id="api-terminal">
-                <!-- Se inyecta por JS -->
+            
+            <div class="p-6 scanlines bg-[#050B14] font-mono text-[11px] text-green-400 h-[500px] overflow-y-auto" id="api-terminal">
+                <div id="terminal-text">
+                    <p class="text-slate-400">> Consola API en espera...</p>
+                </div>
+                <!-- AQUÍ ES DONDE SE VERÁ LA RESPUESTA REAL DE FORMSUBMIT (INCLUYENDO EL CAPTCHA) -->
+                <iframe name="real_iframe" id="real_iframe" class="w-full h-80 bg-white rounded mt-4 border-2 border-slate-600" style="display:none;" onload="window.iframeLoaded()"></iframe>
             </div>
+
             <div class="bg-slate-900 p-4 border-t border-slate-800 flex justify-between items-center">
-                <div class="text-xs text-slate-400 flex items-center gap-2" id="api-status"><div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div> Transmitiendo Datos Reales...</div>
-                <button onclick="closeModal('api-modal')" class="px-4 py-1.5 bg-slate-700 text-white rounded hover:bg-slate-600 font-medium text-xs hidden" id="api-close-btn">Cerrar Consola</button>
+                <div class="text-xs text-slate-400 flex items-center gap-2" id="api-status"><div class="w-2 h-2 bg-slate-500 rounded-full"></div> Standby</div>
+                <button onclick="closeModal('api-modal')" class="px-4 py-1.5 bg-[#4285F4] text-white rounded hover:bg-blue-600 font-bold text-xs shadow-lg" id="api-close-btn">Cerrar Consola</button>
             </div>
         </div>
     </div>
@@ -426,14 +470,13 @@
 
     <!-- SCRIPTS -->
     <script>
-        // Correo real destino
         const correoIngeniero = "mcifuentes453@gmail.com";
-        // Ya no es necesario declarar emailSubmitted aquí porque se hace globalmente arriba
 
         // --- RELOJ ---
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString('es-CO');
+            const clockEl = document.getElementById('clock');
+            if(clockEl) clockEl.innerText = now.toLocaleTimeString('es-CO');
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -441,13 +484,17 @@
         // --- BUSCADOR ---
         function filterTable() {
             let input = document.getElementById("searchInput");
+            if(!input) return;
             let filter = input.value.toUpperCase();
             let table = document.getElementById("dataTable");
+            if(!table) return;
             let tr = table.getElementsByTagName("tr");
             let clearBtn = document.getElementById("clearFilterBtn");
 
-            if (filter.length > 0) clearBtn.classList.remove("hidden");
-            else clearBtn.classList.add("hidden");
+            if (clearBtn) {
+                if (filter.length > 0) clearBtn.classList.remove("hidden");
+                else clearBtn.classList.add("hidden");
+            }
 
             for (let i = 1; i < tr.length; i++) {
                 let textContent = tr[i].textContent || tr[i].innerText;
@@ -457,25 +504,26 @@
         }
 
         function clearFilter() {
-            document.getElementById("searchInput").value = "";
+            let input = document.getElementById("searchInput");
+            if(input) input.value = "";
             filterTable();
         }
 
         function filterAlerts() {
-            document.getElementById("searchInput").value = "ALERTA"; 
+            let input = document.getElementById("searchInput");
+            if(input) input.value = "ALERTA"; 
             filterTable(); 
-            document.getElementById("inventario").scrollIntoView({ behavior: 'smooth' });
+            let inv = document.getElementById("inventario");
+            if(inv) inv.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // --- LÓGICA DE PILOTO AUTOMÁTICO SILENCIOSO CON ENVÍO DE CORREO REAL ---
+        // --- LÓGICA DE PILOTO AUTOMÁTICO SILENCIOSO ---
         function toggleAutoPilot() {
             const toggle = document.getElementById('autoPilotToggle');
             const btnTable = document.getElementById('btn-v005-table');
             
-            if(toggle.checked) {
+            if(toggle && toggle.checked) {
                 if(btnTable && btnTable.disabled) return;
-
-                // Empezar orquestación 100% de fondo
                 setTimeout(() => {
                     ejecutarOrquestacionSilenciosa();
                 }, 2000);
@@ -486,107 +534,105 @@
             const btnPanel = document.getElementById('btn-v005-panel');
             const tdAction = document.getElementById('td-action-v005');
             
-            // 1. Cambiar la UI silenciosamente a modo Éxito
-            tdAction.innerHTML = `
-                <span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center">
-                    <i class="fa-solid fa-check-double mr-1"></i> API Sync OK
-                </span>`;
+            if(tdAction) {
+                tdAction.innerHTML = `
+                    <span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center">
+                        <i class="fa-solid fa-check-double mr-1"></i> API Sync OK
+                    </span>`;
+            }
 
-            btnPanel.outerHTML = `
-                <div class="w-full py-2 bg-success text-white rounded text-xs font-bold flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-check-double mr-1"></i> Enviado a ${correoIngeniero}
-                </div>`;
+            if(btnPanel) {
+                btnPanel.outerHTML = `
+                    <div class="w-full py-2 bg-success text-white rounded text-xs font-bold flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-check-double mr-1"></i> Enviado a ${correoIngeniero}
+                    </div>`;
+            }
 
-            document.getElementById('row-v005').classList.replace('bg-alert/5', 'bg-success/5');
+            const row = document.getElementById('row-v005');
+            if(row) row.classList.replace('bg-alert/5', 'bg-success/5');
 
             const alertCount = document.getElementById('alert-count');
-            if(parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
+            if(alertCount && parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
 
-            // Iniciamos la consola y ejecutamos el envío real del formulario
             iniciarEnvioRealAPI('Ventilador Mecánico V-005', '10 de Marzo de 2026');
         }
 
-        // --- ENVÍO REAL DEL CORREO POR FORMULARIO (Evita bloqueo CORS) ---
+        // --- ENVÍO REAL DEL CORREO (AQUÍ ESTÁ LA MAGIA) ---
         function iniciarEnvioRealAPI(equipo, fecha) {
             openModal('api-modal');
-            const terminal = document.getElementById('api-terminal');
+            const terminalText = document.getElementById('terminal-text');
             const status = document.getElementById('api-status');
-            const closeBtn = document.getElementById('api-close-btn');
+            const iframe = document.getElementById('real_iframe');
             
-            closeBtn.classList.add('hidden');
-            status.innerHTML = `<div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div> POST Request enviándose (Real)...`;
+            if(status) status.innerHTML = `<div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div> POST Request enviándose (Real)...`;
             
-            terminal.innerHTML = `
-<p class="text-blue-400">> POST formsubmit.co/${correoIngeniero}</p>
-<p class="text-slate-500">> Modo: Hidden Iframe Protocol (Evitando restricciones de seguridad)</p>
-<p class="mt-2 text-slate-400">Datos Empaquetados (Enviando correo real...):</p>
+            if(terminalText) {
+                terminalText.innerHTML = `
+<p class="text-blue-400">> Ejecutando conexión segura POST formsubmit.co/${correoIngeniero}</p>
+<p class="mt-2 text-slate-400">Payload transmitido:</p>
 <pre class="text-yellow-300 ml-4 mt-1">
 {
   "_subject": "[ALERTA IA] Mantenimiento Crítico - ${equipo}",
   "Equipo": "${equipo}",
-  "Fecha_Limite": "${fecha}",
-  "Ubicacion": "Fundación HOMI - UCI Intermedia"
+  "Fecha_Limite": "${fecha}"
 }
-</pre>`;
+</pre>
+<p class="mt-4 text-white font-bold">> Esperando respuesta del servidor de correo externo...</p>
+<p class="text-orange-400 text-xs italic">> (Si ves un botón blanco abajo de "I'm not a robot", dale clic para autorizar el envío).</p>
+`;
+            }
 
             // Llenar el formulario oculto con los datos
-            document.getElementById('mail_equipo').value = equipo;
-            document.getElementById('mail_fecha').value = fecha;
-            document.getElementById('mail_subject').value = `[ALERTA IA HOMI] Mantenimiento Urgente: ${equipo}`;
+            const mailEquipo = document.getElementById('mail_equipo');
+            const mailFecha = document.getElementById('mail_fecha');
+            const mailSubject = document.getElementById('mail_subject');
             
-            // Enviar el formulario
-            window.emailSubmitted = true;
-            document.getElementById('emailForm').submit();
-
-            // Simulamos la respuesta exitosa en la consola gráfica después de 3.5 segundos
-            setTimeout(() => {
-                window.emailEnviadoOk();
-            }, 3500);
-        }
-
-        // Callback cuando el iframe termina de cargar
-        window.emailEnviadoOk = function() {
-            if(!window.emailSubmitted) return;
-            window.emailSubmitted = false; // reset
+            if(mailEquipo) mailEquipo.value = equipo;
+            if(mailFecha) mailFecha.value = fecha;
+            if(mailSubject) mailSubject.value = `[ALERTA IA HOMI] Mantenimiento Urgente: ${equipo}`;
             
-            const terminal = document.getElementById('api-terminal');
-            const status = document.getElementById('api-status');
-            const closeBtn = document.getElementById('api-close-btn');
-
-            terminal.innerHTML += `<p class="mt-4 text-green-400 font-bold">> HTTP/1.1 200 OK (Email Sent Successfully)</p>`;
-            terminal.innerHTML += `<p class="text-green-400">> <i class="fa-solid fa-envelope"></i> Revisa la bandeja de entrada (Y SPAM) de: ${correoIngeniero}</p>`;
-            terminal.innerHTML += `<p class="mt-2 text-blue-400">> Conexión cerrada. Tarea ejecutada exitosamente.</p>`;
+            // Hacemos visible el iframe para que puedas ver y resolver el CAPTCHA
+            if(iframe) iframe.style.display = 'block';
             
-            status.innerHTML = `<div class="w-2 h-2 bg-green-500 rounded-full"></div> Transmisión Exitosa`;
-            closeBtn.classList.remove('hidden');
-            
-            showToast(`¡Correo real enviado a ${correoIngeniero}!`, 'success');
+            // Enviamos el formulario
+            window.peticionEnviada = true;
+            const form = document.getElementById('emailForm');
+            if(form) form.submit();
         }
 
         // --- MODAL CONTROLLER ---
         function openModal(modalId, isDefaultCalendar = false) {
             if(isDefaultCalendar && modalId === 'calendar-modal') {
                 modalId = 'api-modal'; 
-                const terminal = document.getElementById('api-terminal');
-                terminal.innerHTML = `<p class="text-slate-400">> Consola API inactiva. Esperando detección de alertas IA...</p>`;
-                document.getElementById('api-status').innerHTML = `<div class="w-2 h-2 bg-slate-500 rounded-full"></div> Standby`;
-                document.getElementById('api-close-btn').classList.remove('hidden');
+                const terminalText = document.getElementById('terminal-text');
+                const realIframe = document.getElementById('real_iframe');
+                const apiStatus = document.getElementById('api-status');
+                
+                if(terminalText) terminalText.innerHTML = `<p class="text-slate-400">> Consola API inactiva. Esperando detección de alertas IA...</p>`;
+                if(realIframe) realIframe.style.display = 'none';
+                if(apiStatus) apiStatus.innerHTML = `<div class="w-2 h-2 bg-slate-500 rounded-full"></div> Standby`;
             }
 
             const modal = document.getElementById(modalId);
             const content = document.getElementById(modalId + '-content');
 
-            modal.classList.remove('hidden');
-            void modal.offsetWidth; 
-            content.classList.remove('scale-95', 'opacity-0');
-            content.classList.add('scale-100', 'opacity-100');
+            if(modal && content) {
+                modal.classList.remove('hidden');
+                void modal.offsetWidth; 
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
         }
 
         function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
             const content = document.getElementById(modalId + '-content');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => { document.getElementById(modalId).classList.add('hidden'); }, 300);
+            
+            if(content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
+            setTimeout(() => { if(modal) modal.classList.add('hidden'); }, 300);
         }
 
         function closeAllModals() {
@@ -597,6 +643,8 @@
         // --- EXCEL TERMINAL SIMULATION ---
         function runExcelSync() {
             const terminal = document.getElementById('excel-terminal');
+            if(!terminal) return;
+            
             terminal.innerHTML += `<p class="mt-2 text-white">> Iniciando lectura de fechas [23 Feb 2026]...</p>`;
             setTimeout(() => { terminal.innerHTML += `<p>> Analizando 124 filas en Inventario_UCI.xlsx...</p>`; }, 800);
             setTimeout(() => { terminal.innerHTML += `<p class="text-yellow-400">> Aplicando regla: =SI(DIAS_RESTANTES<15;"ALERTA")</p>`; }, 1500);
@@ -604,7 +652,8 @@
                 terminal.innerHTML += `<p class="text-green-400 font-bold">> OK. Sincronización completada.</p>`; 
                 setTimeout(() => {
                     closeModal('excel-modal');
-                    if(document.getElementById('autoPilotToggle').checked) {
+                    const toggle = document.getElementById('autoPilotToggle');
+                    if(toggle && toggle.checked) {
                         ejecutarOrquestacionSilenciosa();
                     }
                 }, 1200);
@@ -613,21 +662,25 @@
 
         // --- AGENDAR EVENTO (MANUAL) ---
         function triggerEmailManual(equipo, tarea, fecha, btnElement) {
-            document.getElementById('autoPilotToggle').checked = false;
+            const toggle = document.getElementById('autoPilotToggle');
+            if(toggle) toggle.checked = false;
 
-            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando Correo...';
-            btnElement.disabled = true;
+            if(btnElement) {
+                btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando Correo...';
+                btnElement.disabled = true;
+            }
 
             setTimeout(() => {
-                const tdAction = btnElement.parentElement;
-                
-                tdAction.innerHTML = `
-                <span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center">
-                    <i class="fa-solid fa-check-double mr-1"></i> API Sync OK
-                </span>`;
+                if(btnElement && btnElement.parentElement) {
+                    const tdAction = btnElement.parentElement;
+                    tdAction.innerHTML = `
+                    <span class="bg-success/20 text-success border border-success/50 px-3 py-1.5 rounded text-xs font-bold shadow-lg block text-center">
+                        <i class="fa-solid fa-check-double mr-1"></i> API Sync OK
+                    </span>`;
+                }
                 
                 const alertCount = document.getElementById('alert-count');
-                if(parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
+                if(alertCount && parseInt(alertCount.innerText) > 0) alertCount.innerText = parseInt(alertCount.innerText) - 1;
 
                 iniciarEnvioRealAPI(equipo, fecha);
 
@@ -635,8 +688,10 @@
         }
 
         // --- NOTIFICACIONES TOAST ---
-        function showToast(message, type = 'success') {
+        window.showToast = function(message, type = 'success') {
             const container = document.getElementById('toast-container');
+            if(!container) return;
+            
             const toast = document.createElement('div');
             
             let bgClass = '';
@@ -651,47 +706,59 @@
                 <div class="flex flex-col"><span class="font-bold text-sm text-white">Sistema HOMI</span><span class="text-xs">${message}</span></div>
             `;
             container.appendChild(toast);
+            
+            // Forzar reflujo antes de cambiar clases
+            void toast.offsetWidth;
+            
             setTimeout(() => toast.classList.remove('translate-y-10', 'opacity-0'), 10);
-            setTimeout(() => { toast.classList.add('translate-y-10', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 5000);
+            setTimeout(() => { 
+                toast.classList.add('translate-y-10', 'opacity-0'); 
+                setTimeout(() => { if(toast.parentNode === container) toast.remove() }, 300); 
+            }, 5000);
         }
 
         // --- GRÁFICA DE TIEMPO ---
-        const ctx = document.getElementById('predictionChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
-        gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
+        const canvas = document.getElementById('predictionChart');
+        if(canvas) {
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.4)');
+            gradient.addColorStop(1, 'rgba(14, 165, 233, 0.0)');
 
-        const predictionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Dic 25', 'Ene 26', 'Feb (Hoy)', 'Mar 26', 'Abr 26'],
-                datasets: [{
-                    label: 'Tiempo Útil Restante (%)',
-                    data: [100, 85, 58, 25, 5],
-                    borderColor: '#0EA5E9', backgroundColor: gradient, borderWidth: 3,
-                    pointBackgroundColor: '#050B14', pointBorderColor: '#0EA5E9', pointBorderWidth: 2, pointRadius: 4,
-                    fill: true, tension: 0.4
+            window.predictionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Dic 25', 'Ene 26', 'Feb (Hoy)', 'Mar 26', 'Abr 26'],
+                    datasets: [{
+                        label: 'Tiempo Útil Restante (%)',
+                        data: [100, 85, 58, 25, 5],
+                        borderColor: '#0EA5E9', backgroundColor: gradient, borderWidth: 3,
+                        pointBackgroundColor: '#050B14', pointBorderColor: '#0EA5E9', pointBorderWidth: 2, pointRadius: 4,
+                        fill: true, tension: 0.4
+                    },
+                    {
+                        label: 'Umbral Preventivo (15 Días)',
+                        data: [50, 50, 50, 50, 50],
+                        borderColor: '#EF4444', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false
+                    }]
                 },
-                {
-                    label: 'Umbral Preventivo (15 Días)',
-                    data: [50, 50, 50, 50, 50],
-                    borderColor: '#EF4444', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: {
-                    y: { min: 0, max: 100, grid: { color: '#1E293B' }, ticks: { color: '#64748B' } },
-                    x: { grid: { display: false }, ticks: { color: '#64748B' } }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: '#1E293B' }, ticks: { color: '#64748B' } },
+                        x: { grid: { display: false }, ticks: { color: '#64748B' } }
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // --- SIMULAR ACTUALIZACIÓN ---
         function simulateAIUpdate() {
             setTimeout(() => {
-                predictionChart.data.datasets[0].data = [100, 82, 50, 15, 0];
-                predictionChart.update();
+                if(window.predictionChart) {
+                    window.predictionChart.data.datasets[0].data = [100, 82, 50, 15, 0];
+                    window.predictionChart.update();
+                }
             }, 500);
         }
     </script>
